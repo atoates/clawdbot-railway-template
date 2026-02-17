@@ -51,7 +51,9 @@ RUN apt-get update \
     python3-pip \
     python3-venv \
   && rm -rf /var/lib/apt/lists/* \
-  && ln -sf /usr/bin/python3 /usr/bin/python
+  && ln -sf /usr/bin/python3 /usr/bin/python \
+  && rm -f /usr/lib/python3.*/EXTERNALLY-MANAGED \
+  && pip3 install --no-cache-dir --upgrade pip
 
 # `openclaw update` expects pnpm. Provide it in the runtime image.
 RUN corepack enable && corepack prepare pnpm@10.23.0 --activate
@@ -71,7 +73,8 @@ RUN printf '%s\n' '#!/usr/bin/env bash' 'exec node /openclaw/dist/entry.js "$@"'
 
 # Pre-install polymarket-arb-bot skill and its Python dependencies
 RUN git clone --depth 1 https://github.com/atoates/polymarket-arb-bot.git /opt/polymarket-arb-bot \
-  && pip3 install --no-cache-dir --break-system-packages -r /opt/polymarket-arb-bot/requirements.txt
+  && pip3 install --no-cache-dir -r /opt/polymarket-arb-bot/requirements.txt
+ENV PYTHONPATH="/opt/polymarket-arb-bot:${PYTHONPATH}"
 
 COPY src ./src
 
