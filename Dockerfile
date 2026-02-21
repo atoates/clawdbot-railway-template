@@ -76,6 +76,10 @@ RUN git clone --depth 1 https://github.com/atoates/polymarket-arb-bot.git /opt/p
   && pip3 install --no-cache-dir -r /opt/polymarket-arb-bot/requirements.txt
 ENV PYTHONPATH="/opt/polymarket-arb-bot:${PYTHONPATH}"
 
+# Startup script: sync skill repo + deps on every container start
+COPY scripts/startup.sh /usr/local/bin/startup.sh
+RUN chmod +x /usr/local/bin/startup.sh
+
 COPY src ./src
 
 # The wrapper listens on this port.
@@ -84,4 +88,4 @@ COPY src ./src
 # If we force a different port, deployments can come up but the domain will route elsewhere.
 ENV PORT=8080
 EXPOSE 8080
-CMD ["node", "src/server.js"]
+CMD ["/usr/local/bin/startup.sh"]
