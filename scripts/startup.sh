@@ -7,22 +7,35 @@ BUILD_DIR="/opt/polymarket-arb-bot"
 echo "[startup] Syncing polymarket-arb-bot skill..."
 
 if [ -d "$SKILL_DIR/.git" ]; then
-  # Runtime copy exists — pull latest
   cd "$SKILL_DIR"
-  git fetch origin main --depth 1 2>/dev/null && git reset --hard origin/main 2>/dev/null || true
-  echo "[startup] Pulled latest into $SKILL_DIR"
+  if git fetch origin main --depth 1 2>&1; then
+    git reset --hard origin/main 2>&1
+    echo "[startup] Pulled latest into $SKILL_DIR"
+  else
+    echo "[startup] Git fetch failed (network may not be ready) — using existing copy"
+  fi
 elif [ -d "$BUILD_DIR" ]; then
-  # First boot or volume was wiped — copy from build-time clone
   mkdir -p "$(dirname "$SKILL_DIR")"
-  cp -r "$BUILD_DIR" "$SKILL_DIR"
-  echo "[startup] Copied build-time skill to $SKILL_DIR"
+  if cp -r "$BUILD_DIR" "$SKILL_DIR"; then
+    echo "[startup] Copied build-time skill to $SKILL_DIR"
+  else
+    echo "[startup] ERROR: Failed to copy skill from $BUILD_DIR"
+  fi
+else
+  echo "[startup] WARNING: No skill source found at $BUILD_DIR or $SKILL_DIR"
 fi
 
-# Install/update Python dependencies (fast no-op if already current)
+# Install/update Python dependencies
 if [ -f "$SKILL_DIR/requirements.txt" ]; then
-  pip3 install --no-cache-dir -q -r "$SKILL_DIR/requirements.txt" 2>/dev/null || true
-  echo "[startup] Python dependencies up to date"
+  if pip3 install --no-cache-dir -q -r "$SKILL_DIR/requirements.txt" 2>&1; then
+    echo "[startup] Python dependencies up to date"
+  else
+    echo "[startup] WARNING: pip install failed — some features may not work"
+  fi
 fi
+
+# Set PYTHONPATH to the actual runtime skill location (not the build-time /opt copy)
+export PYTHONPATH="$SKILL_DIR:${PYTHONPATH:-}"
 
 echo "[startup] Skill sync complete — starting server"
 exec node src/server.js
