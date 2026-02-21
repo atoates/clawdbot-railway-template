@@ -38,4 +38,4 @@ fi
 export PYTHONPATH="$SKILL_DIR:${PYTHONPATH:-}"
 
 echo "[startup] Skill sync complete — starting server"
-exec node src/server.js
+cd /app && exec node src/server.js
